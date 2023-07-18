@@ -1,0 +1,119 @@
+# Import necessary libraries and modules
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from keras.preprocessing import image
+from keras.applications import VGG16
+from keras.models import Model
+from keras.layers import Dense, GlobalAveragePooling2D
+from keras.optimizers import Adam
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Set the paths for the training and validation datasets
+train_data_dir = 'data/images/train'
+validation_data_dir = 'data/images/validation'
+
+# Set the dimensions and preprocessing function for the image data
+img_width, img_height = 150, 150
+preprocess_input = ...
+
+# Set the hyperparameters for the CNN model
+batch_size = 16
+epochs = 10
+
+# Data augmentation and generators
+train_datagen = ...
+validation_datagen = ...
+
+# Create the train and validation generators
+train_generator = ...
+validation_generator = ...
+
+# Load the pre-trained VGG16 model
+base_model = VGG16(weights='imagenet', include_top=False)
+
+# Add custom layers on top of the VGG16 model
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(256, activation='relu')(x)
+predictions = Dense(num_classes, activation='softmax')(x)
+
+# Create the final model
+model = Model(inputs=base_model.input, outputs=predictions)
+
+# Freeze the layers in the base model
+for layer in base_model.layers:
+    layer.trainable = False
+
+# Compile the model
+model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Train the model
+history = model.fit(
+    train_generator,
+    steps_per_epoch=num_train_samples // batch_size,
+    epochs=epochs,
+    validation_data=validation_generator,
+    validation_steps=num_validation_samples // batch_size
+)
+
+# Plot the training and validation accuracy and loss
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+# Evaluate the model on the validation set
+validation_generator.reset()
+Y_pred = model.predict(validation_generator, steps=num_validation_samples // batch_size + 1)
+y_pred = np.argmax(Y_pred, axis=1)
+print('Classification Report')
+print(classification_report(validation_generator.classes, y_pred))
+
+# Generate predictions on a sample image
+sample_img_path = ...
+img = image.load_img(sample_img_path, target_size=(img_width, img_height))
+img = image.img_to_array(img)
+img = np.expand_dims(img, axis=0)
+img = preprocess_input(img)
+prediction = model.predict(img)
+predicted_class = ...
+
+# Print classification report and confusion matrix
+validation_generator.reset()
+Y_pred = model.predict(validation_generator, steps=num_validation_samples // batch_size + 1)
+y_pred = np.argmax(Y_pred, axis=1)
+class_labels = list(validation_generator.class_indices.keys())
+cm = confusion_matrix(validation_generator.classes, y_pred)
+plt.figure(figsize=(10, 8))
+plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+plt.title('Confusion Matrix')
+plt.colorbar()
+tick_marks = np.arange(len(class_labels))
+plt.xticks(tick_marks, class_labels, rotation=45)
+plt.yticks(tick_marks, class_labels)
+plt.xlabel('Predicted Class')
+plt.ylabel('True Class')
+plt.tight_layout()
+plt.show()
+
+# Save the trained model
+model.save('models/image_recognition_model.h5')
+
+# Deploy the model for real-time image recognition
+# ...
+
+# Include additional sections as needed, such as fine-tuning, additional evaluation metrics, or any custom code relevant to your project.
